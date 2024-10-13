@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      dockerfile: Dockerfile
+    environment:
+      TZ: "Asia/Shanghai"
+    ports:
+      - 8080:8080
+      - 5005:5005
+    command:
+      - bash
+      - -c
+      - |
+        java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -jar /opt/vwa.jar
+

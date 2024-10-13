@@ -1,0 +1,22 @@
+services:
+  openrasp-app:
+    build:
+      dockerfile: Dockerfile
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      - ./volumes/openrasp/openrasp.yml:/opt/openrasp/rasp-2022-01-28/rasp/conf/openrasp.yml
+      - ./volumes/openrasp/official.js:/opt/openrasp/rasp-2022-01-28/rasp/plugins/official.js
+      - ./volumes/openrasp/data:/root/data
+    ports:
+      - 8080:8080
+      - 5005:5005
+    command:
+      - bash
+      - -c
+      - |
+        chmod 777 -R /opt/openrasp/rasp-2022-01-28/rasp
+        nohup java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -javaagent:/opt/openrasp/rasp-2022-01-28/rasp/rasp.jar -jar /opt/vwa.jar > /tmp/app.log 2>&1 &
+        nohup tail -F /opt/openrasp/rasp-2022-01-28/rasp/logs/alarm/alarm.log |stdbuf -oL jq > /tmp/rasp.log 2>&1 &
+        tail -F /tmp/app.log /tmp/rasp.log
+

@@ -1,0 +1,27 @@
+services:
+  jrasp-app:
+    build:
+      dockerfile: Dockerfile
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      - ./volumes/jrasp/config.json:/opt/jrasp/jrasp/config/config.json
+      - ./volumes/jrasp/data:/root/data
+    ports:
+      - 8080:8080
+      - 5005:5005
+      - 8088:8088
+    command:
+      - bash
+      - -c
+      - |
+        nohup java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -jar /opt/vwa.jar > /tmp/app.log 2>&1 &
+        nohup bash -c 'cd /opt/jrasp/server/ && ./server' >/tmp/server.log 2>&1 &
+        sleep 3
+        nohup bash -c 'cd /opt/jrasp/jrasp/bin/ && ./jrasp-daemon' >/tmp/daemon.log 2>&1 &
+        sed -i 's|/usr/local/jrasp|/opt/jrasp/jrasp|' /opt/jrasp/filebeat/filebeat.yml
+        sed -i 's|https://www.server.jrasp.com|http://127.0.0.1|' /opt/jrasp/filebeat/filebeat.yml
+        cd /opt/jrasp/filebeat/ && ./startup.sh
+        nohup tail -F /opt/jrasp/jrasp/logs/jrasp-attack-0.log|stdbuf -oL grep -o '{.*}'|stdbuf -oL jq > /tmp/attack.log 2>&1 &
+        tail -F /tmp/app.log /tmp/daemon.log /tmp/attack.log /opt/jrasp/jrasp/logs/jrasp-agent-0.log
+
